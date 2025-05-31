@@ -2039,6 +2039,16 @@ impl WebViewExtWindows for WebView {
   {
     webview2::InnerWebView::capture_preview(image_format, callback)
   }
+
+  /// Captures a preview of the WebView content and saves it to a file
+  pub fn capture_preview_to_file<P: AsRef<std::path::Path>>(
+    &self,
+    path: P,
+    image_format: CapturePreviewImageFormat,
+  ) -> Result<()> {
+    webview2::InnerWebView::capture_preview_to_file(path, image_format)
+  }
+
   fn controller(&self) -> ICoreWebView2Controller {
     self.webview.controller.clone()
   }
