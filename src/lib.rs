@@ -2028,6 +2028,17 @@ pub trait WebViewExtWindows {
 
 #[cfg(target_os = "windows")]
 impl WebViewExtWindows for WebView {
+  /// Captures a preview of the WebView content as an image
+  pub fn capture_preview<F>(
+    &self,
+    image_format: CapturePreviewImageFormat,
+    callback: F,
+  ) -> Result<()>
+  where
+    F: FnOnce(Result<Vec<u8>>) + Send + 'static,
+  {
+    webview2::InnerWebView::capture_preview(image_format, callback)
+  }
   fn controller(&self) -> ICoreWebView2Controller {
     self.webview.controller.clone()
   }
