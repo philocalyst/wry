@@ -32,8 +32,8 @@ use windows::{
 use self::drag_drop::DragDropController;
 use super::Theme;
 use crate::{
-  proxy::ProxyConfig, Error, MemoryUsageLevel, PageLoadEvent, Rect, RequestAsyncResponder, Result,
-  WebViewAttributes, RGBA,
+  proxy::ProxyConfig, CapturePreviewImageFormat, Error, MemoryUsageLevel, PageLoadEvent, Rect,
+  RequestAsyncResponder, Result, WebViewAttributes, RGBA,
 };
 
 type EventRegistrationToken = i64;
