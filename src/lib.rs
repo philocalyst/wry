@@ -1996,6 +1996,14 @@ pub enum MemoryUsageLevel {
   Low,
 }
 
+#[cfg(target_os = "windows")]
+// The image format choices
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapturePreviewImageFormat {
+  Png,
+  Jpeg,
+}
+
 /// Additional methods on `WebView` that are specific to Windows.
 #[cfg(target_os = "windows")]
 pub trait WebViewExtWindows {

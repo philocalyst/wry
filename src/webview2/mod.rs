@@ -1680,13 +1680,6 @@ pub enum ScrollBarStyle {
   FluentOverlay,
 }
 
-// The image format choices
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CapturePreviewImageFormat {
-  Png,
-  Jpeg,
-}
-
 #[inline]
 fn load_url_with_headers(
   webview: &ICoreWebView2,
