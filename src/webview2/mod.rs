@@ -80,7 +80,75 @@ impl Drop for InnerWebView {
 }
 
 impl InnerWebView {
+  pub fn capture_preview<F>(
+    &self,
+    image_format: CapturePreviewImageFormat,
+    callback: F,
+  ) -> Result<()>
+  where
+    F: FnOnce(Result<Vec<u8>>) + Send + 'static,
+  {
+    unsafe {
+      // Create a memory stream to capture the image data
+      let stream = SHCreateMemStream(None).ok_or_else(|| {
+        Error::WebView2Error(webview2_com::Error::WindowsError(
+          windows::core::Error::from(E_FAIL),
+        ))
+      })?;
 
+      let format = match image_format {
+        CapturePreviewImageFormat::Png => COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_PNG,
+        CapturePreviewImageFormat::Jpeg => COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_JPEG,
+      };
+
+      // Create the completion handler
+      let handler = CapturePreviewCompletedHandler::create(Box::new(move |error_code| {
+        let result = match error_code {
+          Ok(_) => {
+            // Read the data from the stream
+            match Self::read_stream_data(&stream) {
+              Ok(data) => Ok(data),
+              Err(e) => Err(Error::WebView2Error(e)),
+            }
+          }
+          Err(e) => Err(Error::WebView2Error(e)),
+        };
+
+        callback(result);
+        Ok(())
+      }));
+
+      self
+        .webview
+        .CapturePreview(format, &stream, &handler)
+        .map_err(Into::into)
+    }
+  }
+
+  pub fn capture_preview_to_file<P: AsRef<std::path::Path>>(
+    &self,
+    path: P,
+    image_format: CapturePreviewImageFormat,
+  ) -> Result<()> {
+    let path = path.as_ref().to_path_buf();
+
+    self.capture_preview(image_format, move |result| match result {
+      Ok(data) => {
+        if let Err(e) = std::fs::write(&path, &data) {
+          #[cfg(feature = "tracing")]
+          tracing::error!("Failed to write capture preview to file: {}", e);
+          #[cfg(debug_assertions)]
+          eprintln!("Failed to write capture preview to file: {}", e);
+        }
+      }
+      Err(e) => {
+        #[cfg(feature = "tracing")]
+        tracing::error!("Failed to capture preview: {:?}", e);
+        #[cfg(debug_assertions)]
+        eprintln!("Failed to capture preview: {:?}", e);
+      }
+    })
+  }
 
   #[inline]
   unsafe fn read_stream_data(stream: &IStream) -> windows::core::Result<Vec<u8>> {
