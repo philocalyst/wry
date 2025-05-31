@@ -15,6 +15,9 @@ use http::{Request, Response as HttpResponse, StatusCode};
 use once_cell::sync::Lazy;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use webview2_com::{Microsoft::Web::WebView2::Win32::*, *};
+use windows::Win32::Storage::StructuredStorage::STGM_READWRITE;
+use windows::Win32::System::Com::IStream;
+use windows::Win32::System::Com::{STATFLAG_NONAME, STREAM_SEEK_SET};
 use windows::{
   core::{s, w, Interface, BOOL, HSTRING, PCWSTR, PWSTR},
   Win32::{
