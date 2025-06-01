@@ -2048,14 +2048,10 @@ pub trait WebViewExtWindows {
 impl WebViewExtWindows for WebView {
   /// Captures a preview of the WebView content as an image
   pub fn capture_preview<F>(
-    &self,
-    image_format: CapturePreviewImageFormat,
-    callback: F,
-  ) -> Result<()>
   where
     F: FnOnce(Result<Vec<u8>>) + Send + 'static,
   {
-    webview2::InnerWebView::capture_preview(image_format, callback)
+    self.capture_preview(image_format, callback)
   }
 
   /// Captures a preview of the WebView content and saves it to a file
@@ -2064,7 +2060,7 @@ impl WebViewExtWindows for WebView {
     path: P,
     image_format: CapturePreviewImageFormat,
   ) -> Result<()> {
-    webview2::InnerWebView::capture_preview_to_file(path, image_format)
+    self.capture_preview_to_file(path, image_format)
   }
 
   fn controller(&self) -> ICoreWebView2Controller {
