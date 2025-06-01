@@ -2030,6 +2030,16 @@ pub trait WebViewExtWindows {
   /// [2]: https://learn.microsoft.com/en-us/dotnet/api/microsoft.web.webview2.core.corewebview2.memoryusagetargetlevel?view=webview2-dotnet-1.0.2088.41#remarks
   fn set_memory_usage_level(&self, level: MemoryUsageLevel) -> Result<()>;
 
+  fn capture_preview<F>(&self, image_format: CapturePreviewImageFormat, callback: F) -> Result<()>
+  where
+    F: FnOnce(Result<Vec<u8>>) + Send + 'static;
+
+  fn capture_preview_to_file<P: AsRef<std::path::Path>>(
+    &self,
+    path: P,
+    image_format: CapturePreviewImageFormat,
+  ) -> Result<()>;
+
   /// Attaches this webview to the given HWND and removes it from the current one.
   fn reparent(&self, hwnd: isize) -> Result<()>;
 }
