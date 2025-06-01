@@ -10,12 +10,13 @@ use std::{
   sync::mpsc,
 };
 
+use crate::WebViewExtWindows;
+
 use dpi::{PhysicalPosition, PhysicalSize};
 use http::{Request, Response as HttpResponse, StatusCode};
 use once_cell::sync::Lazy;
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use webview2_com::{Microsoft::Web::WebView2::Win32::*, *};
-use windows::Win32::Storage::StructuredStorage::STGM_READWRITE;
 use windows::Win32::System::Com::IStream;
 use windows::Win32::System::Com::{STATFLAG_NONAME, STREAM_SEEK_SET};
 use windows::{
@@ -158,7 +159,7 @@ impl InnerWebView {
   ) -> Result<()> {
     let path = path.as_ref().to_path_buf();
 
-    self.capture_preview(image_format, move |result| match result {
+    Self::capture_preview(self, image_format, move |result| match result {
       Ok(data) => {
         if let Err(e) = std::fs::write(&path, &data) {
           #[cfg(feature = "tracing")]
@@ -176,31 +177,6 @@ impl InnerWebView {
     })
   }
 
-  #[inline]
-  unsafe fn read_stream_data(stream: &IStream) -> windows::core::Result<Vec<u8>> {
-    // Get the stream size
-    let mut stat = std::mem::zered();
-    stream.Stat(&mut stat, 0)?;
-    let size = stat.cbSize.QuadPart as usize;
-
-    // Reset stream position to beginning
-    stream.Seek(0, STREAM_SEEK_SET, None)?;
-
-    // Read all data from the stream
-    let mut buffer = vec![0u8; size];
-    let mut bytes_read = 0u32;
-
-    stream.Read(
-      buffer.as_mut_ptr() as *mut _,
-      size as u32,
-      Some(&mut bytes_read),
-    )?;
-
-    buffer.truncate(bytes_read as usize);
-    Ok(buffer)
-  }
-
-  #[inline]
   pub fn new(
     window: &impl HasWindowHandle,
     attributes: WebViewAttributes,
