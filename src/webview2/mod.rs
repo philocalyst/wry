@@ -80,6 +80,31 @@ impl Drop for InnerWebView {
 }
 
 impl InnerWebView {
+  #[inline]
+  unsafe fn read_stream_data(stream: &IStream) -> windows::core::Result<Vec<u8>> {
+    // Get the stream size
+    let mut stat = std::mem::zeroed();
+    stream.Stat(&mut stat, STATFLAG_NONAME)?;
+    let size = stat.cbSize as usize;
+
+    // Reset stream position to beginning
+    stream.Seek(0, STREAM_SEEK_SET, None)?;
+
+    // Read all data from the stream
+    let mut buffer = vec![0u8; size];
+    let mut bytes_read = 0u32;
+
+    stream.Read(
+      buffer.as_mut_ptr() as *mut _,
+      size as u32,
+      Some(&mut bytes_read),
+    );
+
+    buffer.truncate(bytes_read as usize);
+    Ok(buffer)
+  }
+
+  #[inline]
   pub fn capture_preview<F>(
     &self,
     image_format: CapturePreviewImageFormat,
@@ -101,17 +126,18 @@ impl InnerWebView {
         CapturePreviewImageFormat::Jpeg => COREWEBVIEW2_CAPTURE_PREVIEW_IMAGE_FORMAT_JPEG,
       };
 
+      let stream_for_handler = stream.clone();
       // Create the completion handler
       let handler = CapturePreviewCompletedHandler::create(Box::new(move |error_code| {
         let result = match error_code {
           Ok(_) => {
             // Read the data from the stream
-            match Self::read_stream_data(&stream) {
+            match Self::read_stream_data(&stream_for_handler) {
               Ok(data) => Ok(data),
-              Err(e) => Err(Error::WebView2Error(e)),
+              Err(e) => Err(Error::UnsupportedWindowHandle),
             }
           }
-          Err(e) => Err(Error::WebView2Error(e)),
+          Err(e) => Err(Error::UnsupportedWindowHandle),
         };
 
         callback(result);
