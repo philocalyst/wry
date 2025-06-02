@@ -2202,6 +2202,21 @@ impl WebViewExtMacOS for WebView {
     self.webview.print_with_options(options)
   }
 
+  fn take_snapshot(
+    &self,
+    snapshot_configuration: Option<&objc2_web_kit::WKSnapshotConfiguration>,
+    callback: impl Fn(Result<Vec<u8>>) + Send + 'static,
+  ) -> Result<()> {
+    self.take_snapshot(snapshot_configuration, callback)
+  }
+
+  fn take_snapshot_sync(
+    &self,
+    snapshot_configuration: Option<&objc2_web_kit::WKSnapshotConfiguration>,
+  ) -> Result<Vec<u8>> {
+    self.take_snapshot_sync(snapshot_configuration)
+  }
+
   fn set_traffic_light_inset<P: Into<dpi::Position>>(&self, position: P) -> Result<()> {
     self.webview.set_traffic_light_inset(position.into())
   }
