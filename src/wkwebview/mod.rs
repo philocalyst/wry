@@ -634,6 +634,61 @@ r#"Object.defineProperty(window, 'ipc', {
     url_from_webview(&self.webview)
   }
 
+  pub fn take_snapshot(
+    &self,
+    snapshot_configuration: Option<&objc2_web_kit::WKSnapshotConfiguration>,
+    callback: impl Fn(Result<Vec<u8>>) + Send + 'static,
+  ) -> Result<()> {
+    unsafe {
+      let handler = block2::RcBlock::new(
+        move |image: *mut objc2_app_kit::NSImage, error: *mut NSError| {
+          if !error.is_null() {
+            callback(Err(Error::SnapshotError));
+            return;
+          }
+
+          if image.is_null() {
+            callback(Err(Error::SnapshotError));
+            return;
+          }
+
+          // Convert NSImage to PNG data
+          let image_ref = &*image;
+          let bitmap_rep = image_ref
+            .bestRepresentationForRect_context_hints(
+              CGRect::new(CGPoint::new(0.0, 0.0), image_ref.size()),
+              None,
+              None,
+            )
+            .unwrap();
+
+          let bitmap = bitmap_rep
+            .downcast::<objc2_app_kit::NSBitmapImageRep>()
+            .unwrap();
+          let png_data = bitmap.representationUsingType_properties(
+            objc2_app_kit::NSBitmapImageFileType::PNG,
+            &objc2_foundation::NSDictionary::new(),
+          );
+
+          if let Some(data) = png_data {
+            let bytes = std::slice::from_raw_parts(
+              data.as_bytes_unchecked().to_vec().as_ptr(),
+              data.length(),
+            );
+            callback(Ok(bytes.to_vec()));
+          } else {
+            callback(Err(Error::SnapshotError));
+          }
+        },
+      );
+
+      // Call the WKWebView method directly
+      objc2::msg_send![&*self.webview, takeSnapshotWithConfiguration: snapshot_configuration, completionHandler: &
+         *handler]
+    }
+
+    Ok(())
+  }
 
   pub fn take_snapshot_sync(
     &self,
