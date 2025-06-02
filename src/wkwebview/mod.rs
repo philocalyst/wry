@@ -646,25 +646,51 @@ r#"Object.defineProperty(window, 'ipc', {
             callback(Err(Error::SnapshotError));
             return;
           }
-
           if image.is_null() {
             callback(Err(Error::SnapshotError));
             return;
           }
 
-          // Convert NSImage to PNG data
           let image_ref = &*image;
-          let bitmap_rep = image_ref
-            .bestRepresentationForRect_context_hints(
-              CGRect::new(CGPoint::new(0.0, 0.0), image_ref.size()),
-              None,
-              None,
-            )
-            .unwrap();
 
-          let bitmap = bitmap_rep
-            .downcast::<objc2_app_kit::NSBitmapImageRep>()
-            .unwrap();
+          // Get the best representation
+          let image_rep = match image_ref.bestRepresentationForRect_context_hints(
+            CGRect::new(CGPoint::new(0.0, 0.0), image_ref.size()),
+            None,
+            None,
+          ) {
+            Some(rep) => rep,
+            None => {
+              callback(Err(Error::SnapshotError));
+              return;
+            }
+          };
+
+          // Try to downcast to NSBitmapImageRep
+          let bitmap = match image_rep.downcast::<objc2_app_kit::NSBitmapImageRep>() {
+            Ok(bitmap) => bitmap,
+            Err(_) => {
+              // If it's not a bitmap rep, create one from the image's TIFF data
+              let tiff_data = match image_ref.TIFFRepresentation() {
+                Some(data) => data,
+                None => {
+                  callback(Err(Error::SnapshotError));
+                  return;
+                }
+              };
+
+              // Create allocated NSBitmapImageRep and initialize with data
+              let allocated = objc2_app_kit::NSBitmapImageRep::alloc();
+              match objc2_app_kit::NSBitmapImageRep::initWithData(allocated, &tiff_data) {
+                Some(bitmap) => bitmap,
+                None => {
+                  callback(Err(Error::SnapshotError));
+                  return;
+                }
+              }
+            }
+          };
+
           let png_data = bitmap.representationUsingType_properties(
             objc2_app_kit::NSBitmapImageFileType::PNG,
             &objc2_foundation::NSDictionary::new(),
@@ -672,16 +698,10 @@ r#"Object.defineProperty(window, 'ipc', {
 
           use std::os::raw::c_void;
           if let Some(data) = png_data {
-            // Get the length and allocate a buffer
             let length = data.length();
             let mut buffer = vec![0u8; length];
-
-            // Get the NonNull pointer to the buffer
             let ptr = NonNull::new(buffer.as_mut_ptr() as *mut c_void).unwrap();
-
-            // Fill the buffer
             data.getBytes_length(ptr, length);
-
             callback(Ok(buffer));
           } else {
             callback(Err(Error::SnapshotError));
@@ -689,11 +709,8 @@ r#"Object.defineProperty(window, 'ipc', {
         },
       );
 
-      // Call the WKWebView method directly
-      objc2::msg_send![&*self.webview, takeSnapshotWithConfiguration: snapshot_configuration, completionHandler: &
-         *handler]
+      objc2::msg_send![&*self.webview, takeSnapshotWithConfiguration: snapshot_configuration, completionHandler: &*handler]
     }
-
     Ok(())
   }
 
