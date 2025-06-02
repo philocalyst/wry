@@ -2178,6 +2178,17 @@ pub trait WebViewExtMacOS {
   /// Warning: Do not use this if your chosen window library does not support traffic light insets.
   /// Warning: Only use this in **decorated** windows with a **hidden titlebar**!
   fn set_traffic_light_inset<P: Into<dpi::Position>>(&self, position: P) -> Result<()>;
+
+  fn take_snapshot(
+    &self,
+    snapshot_configuration: Option<&objc2_web_kit::WKSnapshotConfiguration>,
+    callback: impl Fn(Result<Vec<u8>>) + Send + 'static,
+  ) -> Result<()>;
+
+  fn take_snapshot_sync(
+    &self,
+    snapshot_configuration: Option<&objc2_web_kit::WKSnapshotConfiguration>,
+  ) -> Result<Vec<u8>>;
 }
 
 #[cfg(target_os = "macos")]
