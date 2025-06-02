@@ -670,12 +670,19 @@ r#"Object.defineProperty(window, 'ipc', {
             &objc2_foundation::NSDictionary::new(),
           );
 
+          use std::os::raw::c_void;
           if let Some(data) = png_data {
-            let bytes = std::slice::from_raw_parts(
-              data.as_bytes_unchecked().to_vec().as_ptr(),
-              data.length(),
-            );
-            callback(Ok(bytes.to_vec()));
+            // Get the length and allocate a buffer
+            let length = data.length();
+            let mut buffer = vec![0u8; length];
+
+            // Get the NonNull pointer to the buffer
+            let ptr = NonNull::new(buffer.as_mut_ptr() as *mut c_void).unwrap();
+
+            // Fill the buffer
+            data.getBytes_length(ptr, length);
+
+            callback(Ok(buffer));
           } else {
             callback(Err(Error::SnapshotError));
           }
