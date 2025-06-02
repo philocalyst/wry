@@ -29,6 +29,11 @@ use class::{
   wry_web_view_ui_delegate::WryWebViewUIDelegate,
 };
 
+#[cfg(target_os = "macos")]
+use objc2_app_kit::{NSBitmapImageFileType, NSBitmapImageRep, NSImage};
+#[cfg(target_os = "macos")]
+use objc2_web_kit::WKSnapshotConfiguration;
+
 use dpi::{LogicalPosition, LogicalSize};
 #[cfg(target_os = "macos")]
 use objc2::runtime::Bool;
