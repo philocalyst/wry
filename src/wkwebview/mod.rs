@@ -634,6 +634,20 @@ r#"Object.defineProperty(window, 'ipc', {
     url_from_webview(&self.webview)
   }
 
+
+  pub fn take_snapshot_sync(
+    &self,
+    snapshot_configuration: Option<&objc2_web_kit::WKSnapshotConfiguration>,
+  ) -> Result<Vec<u8>> {
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    self.take_snapshot(snapshot_configuration, move |result| {
+      let _ = tx.send(result);
+    })?;
+
+    unsafe { wait_for_blocking_operation(rx)? }
+  }
+
   pub fn eval(&self, js: &str, callback: Option<impl Fn(String) + Send + 'static>) -> Result<()> {
     if let Some(scripts) = &mut *self.pending_scripts.lock().unwrap() {
       scripts.push(js.into());
